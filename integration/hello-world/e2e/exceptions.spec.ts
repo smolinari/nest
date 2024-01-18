@@ -3,6 +3,10 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import {
+  HyperExpressAdapter,
+  NestHyperExpressApplication,
+} from '@nestjs/platform-hyper-express';
 import { Test } from '@nestjs/testing';
 import { expect } from 'chai';
 import { RawServerDefault } from 'fastify';
@@ -125,6 +129,56 @@ describe('Error messages', () => {
               message: 'Internal server error',
             }),
           );
+        });
+    });
+
+    afterEach(async () => {
+      await app.close();
+    });
+  });
+
+  describe('HyperExpress', () => {
+    let app: NestHyperExpressApplication;
+    beforeEach(async () => {
+      const module = await Test.createTestingModule({
+        controllers: [ErrorsController],
+      }).compile();
+      app = module.createNestApplication<NestHyperExpressApplication>(
+        new HyperExpressAdapter(),
+      );
+      server = app.getHttpServer();
+      await app.init();
+    });
+
+    it(`/GET`, () => {
+      return request(server)
+        .get('/sync')
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Integration test',
+        });
+    });
+
+    it(`/GET (Promise/async)`, () => {
+      return request(server)
+        .get('/async')
+        .expect(HttpStatus.BAD_REQUEST)
+        .expect({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Integration test',
+        });
+    });
+
+    it(`/GET (InternalServerError despite custom content-type)`, async () => {
+      return request(server)
+        .get('/unexpected-error')
+        .expect(HttpStatus.INTERNAL_SERVER_ERROR)
+        .expect({
+          statusCode: 500,
+          message: 'Internal server error',
         });
     });
 

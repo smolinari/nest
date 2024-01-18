@@ -38,7 +38,7 @@ services:
     environment:
       - MONGODB_DATABASE="test"
     ports:
-      - 27017:27017
+      - 27018:27017
   rabbit:
     container_name: test-rabbit
     hostname: rabbit
