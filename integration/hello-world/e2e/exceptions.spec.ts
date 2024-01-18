@@ -10,6 +10,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { expect } from 'chai';
 import { RawServerDefault } from 'fastify';
+import { request as pactReq, spec } from 'pactum';
 import * as request from 'supertest';
 import { ErrorsController } from '../src/errors/errors.controller';
 
@@ -147,14 +148,21 @@ describe('Error messages', () => {
         new HyperExpressAdapter(),
       );
       server = app.getHttpServer();
-      await app.init();
+      await app.listen(9999);
+      const url = await app.getUrl();
+      pactReq.setBaseUrl(
+        url
+          .replace('::1', '127.0.0.1')
+          .replace('+unix', '')
+          .replace('%3A', ':'),
+      );
     });
 
     it(`/GET`, () => {
-      return request(server)
+      return spec()
         .get('/sync')
-        .expect(HttpStatus.BAD_REQUEST)
-        .expect({
+        .expectStatus(HttpStatus.BAD_REQUEST)
+        .expectJson({
           statusCode: 400,
           error: 'Bad Request',
           message: 'Integration test',
@@ -162,10 +170,10 @@ describe('Error messages', () => {
     });
 
     it(`/GET (Promise/async)`, () => {
-      return request(server)
+      return spec()
         .get('/async')
-        .expect(HttpStatus.BAD_REQUEST)
-        .expect({
+        .expectStatus(HttpStatus.BAD_REQUEST)
+        .expectJson({
           statusCode: 400,
           error: 'Bad Request',
           message: 'Integration test',
@@ -173,10 +181,10 @@ describe('Error messages', () => {
     });
 
     it(`/GET (InternalServerError despite custom content-type)`, async () => {
-      return request(server)
+      return spec()
         .get('/unexpected-error')
-        .expect(HttpStatus.INTERNAL_SERVER_ERROR)
-        .expect({
+        .expectStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+        .expectJson({
           statusCode: 500,
           message: 'Internal server error',
         });
